@@ -1,0 +1,1 @@
+// Alarm history state provider

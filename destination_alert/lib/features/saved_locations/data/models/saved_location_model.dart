@@ -1,0 +1,1 @@
+// Saved location data model

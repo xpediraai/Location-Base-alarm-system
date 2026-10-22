@@ -1,0 +1,1 @@
+// Active alarm card widget
