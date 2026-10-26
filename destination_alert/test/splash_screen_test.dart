@@ -4,6 +4,7 @@ import 'package:destination_alert/app/app.dart';
 import 'package:destination_alert/app/router/app_router.dart';
 import 'package:destination_alert/core/constants/asset_constants.dart';
 import 'package:destination_alert/core/widgets/app_splash_screen.dart';
+import 'package:destination_alert/features/auth/presentation/screens/login_screen.dart';
 import 'package:destination_alert/features/home/presentation/screens/home_screen.dart';
 import 'package:destination_alert/features/splash/presentation/screens/splash_screen.dart';
 
@@ -161,7 +162,7 @@ void main() {
   });
 
   group('Startup Flow & Navigation Tests', () {
-    testWidgets('Navigates to home screen when splash completes', (
+    testWidgets('Navigates to login screen when splash completes', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -172,22 +173,40 @@ void main() {
       );
 
       expect(find.byType(SplashScreen), findsOneWidget);
-      expect(find.byType(HomeScreen), findsNothing);
+      expect(find.byType(LoginScreen), findsNothing);
 
       // Advance time past splash duration
       await tester.pump(const Duration(milliseconds: 2600));
       await tester.pumpAndSettle();
 
-      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
 
-    testWidgets('DestinationAlertApp root boots into splash screen', (
+    testWidgets('DestinationAlertApp root boots into splash screen and then login', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(const DestinationAlertApp());
       expect(find.byType(SplashScreen), findsOneWidget);
 
       await tester.pump(const Duration(milliseconds: 2600));
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('Navigates to custom nextRoute when provided', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: const SplashScreen(
+            duration: Duration(milliseconds: 100),
+            nextRoute: AppRouter.home,
+          ),
+          onGenerateRoute: AppRouter.onGenerateRoute,
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
       expect(find.byType(HomeScreen), findsOneWidget);
     });

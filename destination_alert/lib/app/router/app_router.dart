@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 
@@ -8,6 +10,8 @@ class AppRouter {
   AppRouter._();
 
   static const String splash = '/';
+  static const String login = '/login';
+  static const String signup = '/signup';
   static const String home = '/home';
   static const String onboarding = '/onboarding';
 
@@ -16,7 +20,17 @@ class AppRouter {
     switch (settings.name) {
       case splash:
         return MaterialPageRoute<dynamic>(
-          builder: (_) => const SplashScreen(),
+          builder: (_) => const SplashScreen(nextRoute: AppRouter.login),
+          settings: settings,
+        );
+      case login:
+        return MaterialPageRoute<dynamic>(
+          builder: (_) => const LoginScreen(),
+          settings: settings,
+        );
+      case signup:
+        return MaterialPageRoute<dynamic>(
+          builder: (_) => const SignUpScreen(),
           settings: settings,
         );
       case home:
@@ -33,3 +47,4 @@ class AppRouter {
     }
   }
 }
+
