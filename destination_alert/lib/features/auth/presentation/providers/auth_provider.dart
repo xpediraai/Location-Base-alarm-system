@@ -15,9 +15,8 @@ class AuthProvider extends ChangeNotifier {
   String? _successMessage;
   AppUser? _currentUser;
 
-  AuthProvider({
-    AuthRepository? repository,
-  }) : _repository = repository ?? AuthRepositoryImpl() {
+  AuthProvider({AuthRepository? repository})
+    : _repository = repository ?? AuthRepositoryImpl() {
     _currentUser = _repository.currentUser;
   }
 
@@ -46,10 +45,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Logs in with email and password. Returns `true` if successful.
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     _isLoading = true;
     _errorMessage = null;
     _successMessage = null;

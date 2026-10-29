@@ -38,8 +38,7 @@ class EmailAlreadyInUseException extends AuthException {
 /// Backend or auth service not yet configured.
 class AuthConfigurationException extends AuthException {
   const AuthConfigurationException([
-    super.message =
-        'Authentication service is not configured. Please connect a backend API or Firebase Authentication.',
+    super.message = 'Authentication service is not configured. Please connect a backend API or Firebase Authentication.',
   ]) : super(code: 'auth-not-configured');
 }
 

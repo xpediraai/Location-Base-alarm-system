@@ -3,10 +3,7 @@ import '../entities/app_user.dart';
 /// Authentication repository interface defining authentication contracts.
 abstract class AuthRepository {
   /// Signs in a user with email and password.
-  Future<AppUser> login({
-    required String email,
-    required String password,
-  });
+  Future<AppUser> login({required String email, required String password});
 
   /// Registers a new user account.
   Future<AppUser> signUp({
@@ -17,9 +14,7 @@ abstract class AuthRepository {
   });
 
   /// Sends a password reset email to the specified address.
-  Future<void> sendPasswordResetEmail({
-    required String email,
-  });
+  Future<void> sendPasswordResetEmail({required String email});
 
   /// Signs out the currently authenticated user.
   Future<void> logout();

@@ -3,18 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_logo.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_text_field.dart';
 
-/// Production-ready registration screen for Destination Alert.
+/// Production-ready registration screen matching Destination Alert reference design.
 class SignUpScreen extends StatefulWidget {
   final AuthProvider? authProvider;
 
-  const SignUpScreen({
-    super.key,
-    this.authProvider,
-  });
+  const SignUpScreen({super.key, this.authProvider});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -37,6 +35,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _agreedToTerms = false;
+  String? _termsError;
 
   @override
   void initState() {
@@ -102,9 +102,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _handleSignUp() async {
+    if (_authProvider.isLoading) return;
     FocusScope.of(context).unfocus();
 
-    if (!_formKey.currentState!.validate()) {
+    setState(() {
+      _termsError = _agreedToTerms
+          ? null
+          : 'You must accept the Terms & Conditions to continue.';
+    });
+
+    if (!_formKey.currentState!.validate() || !_agreedToTerms) {
       return;
     }
 
@@ -126,7 +133,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  _authProvider.successMessage ?? 'Account created successfully!',
+                  _authProvider.successMessage ??
+                      'Account created successfully!',
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
               ),
@@ -248,22 +256,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // App Brand Logo with squircle styling
+                        const Center(child: AppLogo(size: 78)),
+                        const SizedBox(height: 20),
+
                         // Header
-                        const Text(
-                          'Create Account',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.3,
+                        const Center(
+                          child: Text(
+                            'Create Account',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.3,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
-                          'Sign up to set alarms for your favorite stops',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 14.5,
+                        const Center(
+                          child: Text(
+                            'Start your journey with Destination Alert',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14.5,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                         const SizedBox(height: 28),
@@ -271,7 +288,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         // Full Name Field
                         AuthTextField(
                           label: 'Full Name',
-                          hintText: 'John Doe',
+                          isRequired: true,
+                          hintText: 'Enter your name',
                           controller: _nameController,
                           prefixIcon: Icons.person_outline_rounded,
                           keyboardType: TextInputType.name,
@@ -285,8 +303,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                         // Email Field
                         AuthTextField(
-                          label: 'Email Address',
-                          hintText: 'name@example.com',
+                          label: 'Email address',
+                          isRequired: true,
+                          hintText: 'Enter your email',
                           controller: _emailController,
                           focusNode: _emailFocusNode,
                           prefixIcon: Icons.mail_outline_rounded,
@@ -299,13 +318,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Phone Number Field (Optional)
+                        // Phone Number Field with country prefix
                         AuthTextField(
-                          label: 'Phone Number (Optional)',
-                          hintText: '+1 555 123 4567',
+                          label: 'Phone Number',
+                          hintText: 'Enter phone number',
                           controller: _phoneController,
                           focusNode: _phoneFocusNode,
-                          prefixIcon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
                           textInputAction: TextInputAction.next,
                           validator: (val) =>
@@ -313,13 +331,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           onFieldSubmitted: (_) =>
                               _passwordFocusNode.requestFocus(),
                           enabled: !isLoading,
+                          prefixWidget: Padding(
+                            padding: const EdgeInsets.only(left: 14, right: 8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.phone_outlined,
+                                  color: AppColors.textSecondary,
+                                  size: 19,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  '+91',
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 1,
+                                  height: 20,
+                                  color: AppColors.inputBorder,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
 
                         // Password Field
                         AuthTextField(
                           label: 'Password',
-                          hintText: 'At least 6 characters',
+                          isRequired: true,
+                          hintText: 'Create a password',
                           controller: _passwordController,
                           focusNode: _passwordFocusNode,
                           obscureText: _obscurePassword,
@@ -349,16 +396,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         // Confirm Password Field
                         AuthTextField(
                           label: 'Confirm Password',
+                          isRequired: true,
                           hintText: 'Re-enter your password',
                           controller: _confirmPasswordController,
                           focusNode: _confirmPasswordFocusNode,
                           obscureText: _obscureConfirmPassword,
                           prefixIcon: Icons.lock_reset_rounded,
                           textInputAction: TextInputAction.done,
-                          validator: (val) => Validators.validateConfirmPassword(
-                            val,
-                            _passwordController.text,
-                          ),
+                          validator: (val) =>
+                              Validators.validateConfirmPassword(
+                                val,
+                                _passwordController.text,
+                              ),
                           onFieldSubmitted: (_) => _handleSignUp(),
                           enabled: !isLoading,
                           suffixIcon: IconButton(
@@ -377,42 +426,78 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
 
-                        // Terms and Privacy Note
-                        Center(
-                          child: GestureDetector(
-                            onTap: _showTermsDialog,
-                            child: RichText(
-                              textAlign: TextAlign.center,
-                              text: const TextSpan(
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12.5,
-                                  height: 1.4,
+                        // Terms & Conditions Checkbox
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: _agreedToTerms,
+                                activeColor: AppColors.primaryBlue,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                                children: [
-                                  TextSpan(
-                                    text: 'By signing up, you agree to our ',
-                                  ),
-                                  TextSpan(
-                                    text: 'Terms & Privacy Policy',
+                                onChanged: isLoading
+                                    ? null
+                                    : (val) {
+                                        setState(() {
+                                          _agreedToTerms = val ?? false;
+                                          if (_agreedToTerms) {
+                                            _termsError = null;
+                                          }
+                                        });
+                                      },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: _showTermsDialog,
+                                child: RichText(
+                                  text: const TextSpan(
                                     style: TextStyle(
-                                      color: AppColors.primaryBlue,
-                                      fontWeight: FontWeight.w600,
-                                      decoration: TextDecoration.underline,
+                                      color: AppColors.textPrimary,
+                                      fontSize: 13.5,
                                     ),
+                                    children: [
+                                      TextSpan(text: 'I agree to the '),
+                                      TextSpan(
+                                        text: 'Terms & Conditions',
+                                        style: TextStyle(
+                                          color: AppColors.primaryBlue,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_termsError != null) ...[
+                          const SizedBox(height: 6),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 34),
+                            child: Text(
+                              _termsError!,
+                              style: const TextStyle(
+                                color: AppColors.brandRed,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
-                        ),
+                        ],
                         const SizedBox(height: 24),
 
-                        // Primary Create Account Button
+                        // Primary Sign Up Button
                         PrimaryButton(
-                          text: 'Create Account',
+                          text: 'Sign Up',
                           isLoading: isLoading,
                           onPressed: isLoading ? null : _handleSignUp,
                         ),
@@ -437,7 +522,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                       Navigator.of(context).maybePop();
                                     },
                               child: const Text(
-                                'Log In',
+                                'Sign In',
                                 style: TextStyle(
                                   color: AppColors.primaryBlue,
                                   fontSize: 14,

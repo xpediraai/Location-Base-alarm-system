@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
-/// Modern styled text field for authentication screens.
+/// Modern styled text field for authentication and input forms.
 class AuthTextField extends StatelessWidget {
   /// Label text displayed above the input field.
   final String? label;
+
+  /// Whether this field is marked as required (adds a brand red asterisk).
+  final bool isRequired;
 
   /// Hint text inside the input field.
   final String hintText;
@@ -15,6 +18,9 @@ class AuthTextField extends StatelessWidget {
 
   /// Leading prefix icon.
   final IconData? prefixIcon;
+
+  /// Optional leading prefix widget (e.g. country code).
+  final Widget? prefixWidget;
 
   /// Trailing suffix widget (e.g., password visibility toggle).
   final Widget? suffixIcon;
@@ -46,9 +52,11 @@ class AuthTextField extends StatelessWidget {
   const AuthTextField({
     super.key,
     this.label,
+    this.isRequired = false,
     required this.hintText,
     this.controller,
     this.prefixIcon,
+    this.prefixWidget,
     this.suffixIcon,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
@@ -67,13 +75,25 @@ class AuthTextField extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (label != null) ...[
-          Text(
-            label!,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.1,
+          RichText(
+            text: TextSpan(
+              text: label!,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.1,
+              ),
+              children: [
+                if (isRequired)
+                  const TextSpan(
+                    text: ' *',
+                    style: TextStyle(
+                      color: AppColors.brandRed,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -106,13 +126,15 @@ class AuthTextField extends StatelessWidget {
             ),
             decoration: InputDecoration(
               hintText: hintText,
-              prefixIcon: prefixIcon != null
-                  ? Icon(
-                      prefixIcon,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    )
-                  : null,
+              prefixIcon:
+                  prefixWidget ??
+                  (prefixIcon != null
+                      ? Icon(
+                          prefixIcon,
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        )
+                      : null),
               suffixIcon: suffixIcon,
             ),
           ),
@@ -121,3 +143,7 @@ class AuthTextField extends StatelessWidget {
     );
   }
 }
+
+/// Convenience aliases for component naming consistency.
+typedef AppTextField = AuthTextField;
+typedef PasswordVisibilityField = AuthTextField;

@@ -3,10 +3,7 @@ import '../models/user_model.dart';
 
 /// Contract for remote authentication data sources (Firebase, REST API, etc.).
 abstract class AuthRemoteDataSource {
-  Future<UserModel> login({
-    required String email,
-    required String password,
-  });
+  Future<UserModel> login({required String email, required String password});
 
   Future<UserModel> signUp({
     required String name,
@@ -15,9 +12,7 @@ abstract class AuthRemoteDataSource {
     String? phoneNumber,
   });
 
-  Future<void> sendPasswordResetEmail({
-    required String email,
-  });
+  Future<void> sendPasswordResetEmail({required String email});
 
   Future<void> logout();
 

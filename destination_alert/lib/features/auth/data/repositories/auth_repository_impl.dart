@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
+import '../datasources/firebase_auth_remote_datasource.dart';
 
 /// Implementation of [AuthRepository] mediating between remote datasources and the app domain.
 class AuthRepositoryImpl implements AuthRepository {
@@ -13,11 +16,18 @@ class AuthRepositoryImpl implements AuthRepository {
 
   AppUser? _currentUser;
 
-  AuthRepositoryImpl({
-    AuthRemoteDataSource? remoteDataSource,
-  }) : _remoteDataSource =
-            remoteDataSource ?? const UnconfiguredAuthRemoteDataSource() {
+  AuthRepositoryImpl({AuthRemoteDataSource? remoteDataSource})
+    : _remoteDataSource = remoteDataSource ?? _resolveDefaultDataSource() {
     _currentUser = _remoteDataSource.currentUser;
+  }
+
+  static AuthRemoteDataSource _resolveDefaultDataSource() {
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        return FirebaseAuthRemoteDataSource();
+      }
+    } catch (_) {}
+    return const UnconfiguredAuthRemoteDataSource();
   }
 
   @override
@@ -66,7 +76,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AppException {
       rethrow;
     } catch (e) {
-      throw AuthException('An unexpected error occurred during registration: $e');
+      throw AuthException(
+        'An unexpected error occurred during registration: $e',
+      );
     }
   }
 

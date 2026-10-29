@@ -2,20 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../core/constants/asset_constants.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_logo.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_text_field.dart';
 
-/// Production-ready login screen for Destination Alert.
+/// Production-ready login screen matching Destination Alert reference design.
 class LoginScreen extends StatefulWidget {
   final AuthProvider? authProvider;
 
-  const LoginScreen({
-    super.key,
-    this.authProvider,
-  });
+  const LoginScreen({super.key, this.authProvider});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -80,6 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
+    if (_authProvider.isLoading) return;
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
@@ -118,123 +116,17 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showForgotPasswordSheet() {
-    final resetEmailController =
-        TextEditingController(text: _emailController.text);
-    final resetFormKey = GlobalKey<FormState>();
-    bool isSubmitting = false;
+  void _navigateToForgotPassword() {
+    Navigator.of(context).pushNamed(AppRouter.forgotPassword);
+  }
 
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 28.0,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(24.0),
-                  ),
-                ),
-                child: Form(
-                  key: resetFormKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: AppColors.inputBorder,
-                            borderRadius: BorderRadius.circular(2.5),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Reset Password',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Enter the email associated with your account and we will send instructions to reset your password.',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 14,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      AuthTextField(
-                        label: 'Email Address',
-                        hintText: 'name@example.com',
-                        controller: resetEmailController,
-                        prefixIcon: Icons.mail_outline_rounded,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.done,
-                        validator: Validators.validateEmail,
-                      ),
-                      const SizedBox(height: 24),
-                      PrimaryButton(
-                        text: 'Send Reset Link',
-                        isLoading: isSubmitting,
-                        onPressed: () async {
-                          if (!resetFormKey.currentState!.validate()) return;
-                          setSheetState(() => isSubmitting = true);
-
-                          final messenger = ScaffoldMessenger.of(context);
-                          final ok = await _authProvider.sendPasswordResetEmail(
-                            email: resetEmailController.text,
-                          );
-
-                          if (sheetContext.mounted) {
-                            Navigator.of(sheetContext).pop();
-                          }
-
-                          if (!mounted) return;
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                ok
-                                    ? (_authProvider.successMessage ??
-                                        'Reset link sent!')
-                                    : (_authProvider.errorMessage ??
-                                        'Failed to send reset link.'),
-                              ),
-                              backgroundColor:
-                                  ok ? AppColors.success : AppColors.error,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+  void _handleSocialLogin(String provider) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$provider authentication is not configured yet.'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
@@ -263,29 +155,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 12),
-                        // App Brand Logo with subtle squircle shadow
-                        Center(
-                          child: Container(
-                            width: 82,
-                            height: 82,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceLight,
-                              borderRadius: BorderRadius.circular(22),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: AppColors.shadowColor,
-                                  blurRadius: 18,
-                                  offset: Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Image.asset(
-                              AppAssets.appLogo,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
+                        // App Brand Logo with squircle styling
+                        const Center(child: AppLogo(size: 82)),
                         const SizedBox(height: 24),
 
                         // Title & Subtitle
@@ -303,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 6),
                         const Center(
                           child: Text(
-                            'Sign in to never miss your stop again',
+                            'Sign in to continue to Destination Alert',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 14.5,
@@ -315,8 +186,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Email Field
                         AuthTextField(
-                          label: 'Email Address',
-                          hintText: 'name@example.com',
+                          label: 'Email address',
+                          isRequired: true,
+                          hintText: 'Enter your email',
                           controller: _emailController,
                           prefixIcon: Icons.mail_outline_rounded,
                           keyboardType: TextInputType.emailAddress,
@@ -331,6 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Password Field
                         AuthTextField(
                           label: 'Password',
+                          isRequired: true,
                           hintText: 'Enter your password',
                           controller: _passwordController,
                           focusNode: _passwordFocusNode,
@@ -360,8 +233,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed:
-                                isLoading ? null : _showForgotPasswordSheet,
+                            onPressed: isLoading
+                                ? null
+                                : _navigateToForgotPassword,
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 4,
@@ -382,13 +256,75 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Primary Login Button
+                        // Primary Sign In Button
                         PrimaryButton(
-                          text: 'Log In',
+                          text: 'Sign In',
                           isLoading: isLoading,
                           onPressed: isLoading ? null : _handleLogin,
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 24),
+
+                        // "or continue with" Divider
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Divider(
+                                color: AppColors.inputBorder,
+                                thickness: 1,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14.0,
+                              ),
+                              child: Text(
+                                'or continue with',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const Expanded(
+                              child: Divider(
+                                color: AppColors.inputBorder,
+                                thickness: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Social Buttons Row (Google, Apple, Phone)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildSocialButton(
+                              tooltip: 'Sign in with Google',
+                              icon: Icons.g_mobiledata_rounded,
+                              iconSize: 32,
+                              onPressed: () => _handleSocialLogin('Google'),
+                            ),
+                            const SizedBox(width: 16),
+                            _buildSocialButton(
+                              tooltip: 'Sign in with Apple',
+                              icon: Icons.apple_rounded,
+                              iconSize: 22,
+                              onPressed: () => _handleSocialLogin('Apple'),
+                            ),
+                            const SizedBox(width: 16),
+                            _buildSocialButton(
+                              tooltip: 'Sign in with Phone',
+                              icon: Icons.phone_android_rounded,
+                              iconSize: 20,
+                              onPressed: () => _handleSocialLogin('Phone'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 26),
 
                         // Sign Up Navigation Link
                         Wrap(
@@ -406,9 +342,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               onTap: isLoading
                                   ? null
                                   : () {
-                                      Navigator.of(context).pushNamed(
-                                        AppRouter.signup,
-                                      );
+                                      Navigator.of(context)
+                                          .pushNamed(AppRouter.signup);
                                     },
                               child: const Text(
                                 'Sign Up',
@@ -429,6 +364,44 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialButton({
+    required String tooltip,
+    required IconData icon,
+    required double iconSize,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.inputBorder, width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadowColor,
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onPressed,
+            customBorder: const CircleBorder(),
+            child: Center(
+              child: Icon(icon, size: iconSize, color: AppColors.textPrimary),
+            ),
+          ),
         ),
       ),
     );

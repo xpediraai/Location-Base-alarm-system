@@ -8,6 +8,7 @@ import 'package:destination_alert/features/auth/data/datasources/auth_remote_dat
 import 'package:destination_alert/features/auth/data/models/user_model.dart';
 import 'package:destination_alert/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:destination_alert/features/auth/presentation/providers/auth_provider.dart';
+import 'package:destination_alert/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:destination_alert/features/auth/presentation/screens/login_screen.dart';
 import 'package:destination_alert/features/auth/presentation/screens/signup_screen.dart';
 import 'package:destination_alert/features/home/presentation/screens/home_screen.dart';
@@ -25,11 +26,7 @@ class MockSuccessfulAuthDataSource implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
-    return UserModel(
-      id: 'test-user-123',
-      email: email,
-      name: 'Test Commuter',
-    );
+    return UserModel(id: 'test-user-123', email: email, name: 'Test Commuter');
   }
 
   @override
@@ -66,47 +63,63 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('LoginScreen Widget Tests', () {
-    testWidgets('Renders logo, title, email field, password field, and buttons', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(createTestableWidget(child: const LoginScreen()));
+    testWidgets(
+      'Renders logo, title, email field, password field, and buttons',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          createTestableWidget(child: const LoginScreen()),
+        );
 
-      expect(find.text('Welcome Back'), findsOneWidget);
-      expect(find.text('Sign in to never miss your stop again'), findsOneWidget);
-      expect(find.text('Email Address'), findsOneWidget);
-      expect(find.text('Password'), findsOneWidget);
-      expect(find.text('Forgot Password?'), findsOneWidget);
-      expect(find.widgetWithText(PrimaryButton, 'Log In'), findsOneWidget);
-      expect(find.text('Sign Up'), findsOneWidget);
+        expect(find.text('Welcome Back'), findsOneWidget);
+        expect(
+          find.text('Sign in to continue to Destination Alert'),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('Email address', findRichText: true),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('Password *', findRichText: true),
+          findsOneWidget,
+        );
+        expect(find.text('Forgot Password?'), findsOneWidget);
+        expect(find.widgetWithText(PrimaryButton, 'Sign In'), findsOneWidget);
+        expect(find.text('or continue with'), findsOneWidget);
+        expect(find.text('Sign Up'), findsOneWidget);
 
-      final logoFinder = find.byWidgetPredicate(
-        (w) =>
-            w is Image &&
-            w.image is AssetImage &&
-            (w.image as AssetImage).assetName == AppAssets.appLogo,
-      );
-      expect(logoFinder, findsOneWidget);
-    });
+        final logoFinder = find.byWidgetPredicate(
+          (w) =>
+              w is Image &&
+              w.image is AssetImage &&
+              (w.image as AssetImage).assetName == AppAssets.appLogo,
+        );
+        expect(logoFinder, findsOneWidget);
+      },
+    );
 
-    testWidgets('Triggers validation errors when logging in with empty inputs', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(createTestableWidget(child: const LoginScreen()));
+    testWidgets(
+      'Triggers validation errors when logging in with empty inputs',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          createTestableWidget(child: const LoginScreen()),
+        );
 
-      await tester.tap(find.widgetWithText(PrimaryButton, 'Log In'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(PrimaryButton, 'Sign In'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Email address is required'), findsOneWidget);
-      expect(find.text('Password is required'), findsOneWidget);
-    });
+        expect(find.text('Email address is required'), findsOneWidget);
+        expect(find.text('Password is required'), findsOneWidget);
+      },
+    );
 
     testWidgets('Validates invalid email format', (WidgetTester tester) async {
       await tester.pumpWidget(createTestableWidget(child: const LoginScreen()));
 
-      final emailField = find.widgetWithText(TextFormField, 'name@example.com');
+      final emailField = find.widgetWithText(TextFormField, 'Enter your email');
       await tester.enterText(emailField, 'not-an-email');
 
-      await tester.tap(find.widgetWithText(PrimaryButton, 'Log In'));
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Sign In'));
       await tester.pumpAndSettle();
 
       expect(find.text('Please enter a valid email address'), findsOneWidget);
@@ -117,62 +130,24 @@ void main() {
     ) async {
       await tester.pumpWidget(createTestableWidget(child: const LoginScreen()));
 
-      // Initially password is obscured and icon is visibility_off
       expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
       expect(find.byIcon(Icons.visibility_outlined), findsNothing);
 
-      // Tap toggle button
       await tester.tap(find.byIcon(Icons.visibility_off_outlined));
       await tester.pumpAndSettle();
 
-      // Now password is revealed and icon switches to visibility
       expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
       expect(find.byIcon(Icons.visibility_off_outlined), findsNothing);
     });
 
-    testWidgets('Opens Forgot Password modal sheet and sends reset request', (
+    testWidgets('Tapping Forgot Password navigates to ForgotPasswordScreen', (
       WidgetTester tester,
     ) async {
-      final mockSource = MockSuccessfulAuthDataSource();
-      final authProvider = AuthProvider(
-        repository: AuthRepositoryImpl(remoteDataSource: mockSource),
-      );
+      tester.view.physicalSize = const Size(400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        createTestableWidget(
-          child: LoginScreen(authProvider: authProvider),
-        ),
-      );
-
-      await tester.tap(find.text('Forgot Password?'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Reset Password'), findsOneWidget);
-      expect(find.widgetWithText(PrimaryButton, 'Send Reset Link'), findsOneWidget);
-
-      // Submit empty reset
-      await tester.tap(find.widgetWithText(PrimaryButton, 'Send Reset Link'));
-      await tester.pumpAndSettle();
-      expect(find.text('Email address is required'), findsOneWidget);
-
-      // Enter valid email and submit
-      final resetEmailFinder = find.descendant(
-        of: find.byType(BottomSheet),
-        matching: find.byType(TextFormField),
-      );
-      await tester.enterText(resetEmailFinder, 'reset@example.com');
-
-      await tester.tap(find.widgetWithText(PrimaryButton, 'Send Reset Link'));
-      await tester.pumpAndSettle();
-
-      // Sheet dismissed and snackbar shown
-      expect(find.text('Reset Password'), findsNothing);
-      expect(find.textContaining('Password reset instructions sent'), findsOneWidget);
-    });
-
-    testWidgets('Navigates from LoginScreen to SignUpScreen when tapping Sign Up', (
-      WidgetTester tester,
-    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.lightTheme,
@@ -182,15 +157,65 @@ void main() {
       );
 
       expect(find.byType(LoginScreen), findsOneWidget);
-      await tester.tap(find.text('Sign Up'));
+      await tester.ensureVisible(find.text('Forgot Password?'));
+      await tester.tap(find.text('Forgot Password?'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(SignUpScreen), findsOneWidget);
+      expect(find.byType(ForgotPasswordScreen), findsOneWidget);
+    });
+
+    testWidgets(
+      'Navigates from LoginScreen to SignUpScreen when tapping Sign Up',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(400, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            initialRoute: AppRouter.login,
+            onGenerateRoute: AppRouter.onGenerateRoute,
+          ),
+        );
+
+        expect(find.byType(LoginScreen), findsOneWidget);
+        await tester.ensureVisible(find.text('Sign Up'));
+        await tester.tap(find.text('Sign Up'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SignUpScreen), findsOneWidget);
+      },
+    );
+
+    testWidgets('Tapping social buttons shows informative feedback', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(createTestableWidget(child: const LoginScreen()));
+
+      final googleFinder = find.byTooltip('Sign in with Google');
+      expect(googleFinder, findsOneWidget);
+      await tester.ensureVisible(googleFinder);
+      await tester.tap(googleFinder);
+      await tester.pump();
+
+      expect(find.byType(SnackBar), findsOneWidget);
     });
 
     testWidgets('Successful login navigates to HomeScreen', (
       WidgetTester tester,
     ) async {
+      tester.view.physicalSize = const Size(400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final mockSource = MockSuccessfulAuthDataSource();
       final authProvider = AuthProvider(
         repository: AuthRepositoryImpl(remoteDataSource: mockSource),
@@ -211,13 +236,17 @@ void main() {
         ),
       );
 
-      final emailField = find.widgetWithText(TextFormField, 'name@example.com');
-      final passField = find.widgetWithText(TextFormField, 'Enter your password');
+      final emailField = find.widgetWithText(TextFormField, 'Enter your email');
+      final passField = find.widgetWithText(
+        TextFormField,
+        'Enter your password',
+      );
 
       await tester.enterText(emailField, 'commuter@example.com');
       await tester.enterText(passField, 'securePass123');
 
-      await tester.tap(find.widgetWithText(PrimaryButton, 'Log In'));
+      await tester.ensureVisible(find.widgetWithText(PrimaryButton, 'Sign In'));
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Sign In'));
       await tester.pumpAndSettle();
 
       expect(find.byType(HomeScreen), findsOneWidget);
@@ -238,39 +267,66 @@ void main() {
   });
 
   group('SignUpScreen Widget Tests', () {
-    testWidgets('Renders all registration fields and back button', (
+    testWidgets('Renders all registration fields, terms, and back button', (
       WidgetTester tester,
     ) async {
-      tester.view.physicalSize = const Size(400, 900);
+      tester.view.physicalSize = const Size(400, 950);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createTestableWidget(child: const SignUpScreen()));
+      await tester.pumpWidget(
+        createTestableWidget(child: const SignUpScreen()),
+      );
 
-      expect(find.text('Create Account'), findsNWidgets(2)); // Screen title and button
-      expect(find.text('Full Name'), findsOneWidget);
-      expect(find.text('Email Address'), findsOneWidget);
-      expect(find.text('Phone Number (Optional)'), findsOneWidget);
-      expect(find.text('Password'), findsOneWidget);
-      expect(find.text('Confirm Password'), findsOneWidget);
-      expect(find.widgetWithText(PrimaryButton, 'Create Account'), findsOneWidget);
-      expect(find.text('Log In'), findsOneWidget);
+      expect(find.text('Create Account'), findsOneWidget);
+      expect(
+        find.text('Start your journey with Destination Alert'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Full Name', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Email address', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Phone Number', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Password', findRichText: true),
+        findsWidgets, // Password & Confirm Password
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is RichText &&
+              w.text.toPlainText().contains('Terms & Conditions'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(PrimaryButton, 'Sign Up'), findsOneWidget);
+      expect(find.text('Sign In'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_back_ios_new_rounded), findsOneWidget);
     });
 
     testWidgets('Enforces required validations on empty registration', (
       WidgetTester tester,
     ) async {
-      tester.view.physicalSize = const Size(400, 900);
+      tester.view.physicalSize = const Size(400, 950);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createTestableWidget(child: const SignUpScreen()));
+      await tester.pumpWidget(
+        createTestableWidget(child: const SignUpScreen()),
+      );
 
-      await tester.ensureVisible(find.widgetWithText(PrimaryButton, 'Create Account'));
-      await tester.tap(find.widgetWithText(PrimaryButton, 'Create Account'));
+      await tester.ensureVisible(find.widgetWithText(PrimaryButton, 'Sign Up'));
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Sign Up'));
       await tester.pumpAndSettle();
 
       expect(find.text('Full name is required'), findsOneWidget);
@@ -281,23 +337,25 @@ void main() {
     testWidgets('Enforces password matching validation', (
       WidgetTester tester,
     ) async {
-      tester.view.physicalSize = const Size(400, 900);
+      tester.view.physicalSize = const Size(400, 950);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createTestableWidget(child: const SignUpScreen()));
+      await tester.pumpWidget(
+        createTestableWidget(child: const SignUpScreen()),
+      );
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'John Doe'),
+        find.widgetWithText(TextFormField, 'Enter your name'),
         'John Doe',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'name@example.com'),
+        find.widgetWithText(TextFormField, 'Enter your email'),
         'john@example.com',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'At least 6 characters'),
+        find.widgetWithText(TextFormField, 'Create a password'),
         'password123',
       );
       await tester.enterText(
@@ -305,35 +363,86 @@ void main() {
         'differentPassword',
       );
 
-      await tester.ensureVisible(find.widgetWithText(PrimaryButton, 'Create Account'));
-      await tester.tap(find.widgetWithText(PrimaryButton, 'Create Account'));
+      // Check terms checkbox
+      await tester.ensureVisible(find.byType(Checkbox));
+      await tester.tap(find.byType(Checkbox));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.widgetWithText(PrimaryButton, 'Sign Up'));
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Sign Up'));
       await tester.pumpAndSettle();
 
       expect(find.text('Passwords do not match'), findsOneWidget);
     });
 
-    testWidgets('Opens Terms & Privacy dialog upon tapping link', (
+    testWidgets('Enforces Terms & Conditions acceptance', (
       WidgetTester tester,
     ) async {
-      tester.view.physicalSize = const Size(400, 900);
+      tester.view.physicalSize = const Size(400, 950);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createTestableWidget(child: const SignUpScreen()));
+      await tester.pumpWidget(
+        createTestableWidget(child: const SignUpScreen()),
+      );
 
-      final termsFinder = find.textContaining('Terms & Privacy Policy', findRichText: true);
-      await tester.ensureVisible(termsFinder);
-      await tester.tap(termsFinder);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Enter your name'),
+        'John Doe',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Enter your email'),
+        'john@example.com',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Create a password'),
+        'password123',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Re-enter your password'),
+        'password123',
+      );
+
+      // Do NOT check terms checkbox
+      await tester.ensureVisible(find.widgetWithText(PrimaryButton, 'Sign Up'));
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Sign Up'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Terms & Privacy'), findsOneWidget);
+      expect(
+        find.text('You must accept the Terms & Conditions to continue.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Opens Terms & Conditions dialog upon tapping link', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(400, 950);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        createTestableWidget(child: const SignUpScreen()),
+      );
+
+      final termsRichText = find.byWidgetPredicate(
+        (w) =>
+            w is RichText &&
+            w.text.toPlainText().contains('Terms & Conditions'),
+      );
+      await tester.ensureVisible(termsRichText);
+      await tester.tap(termsRichText);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Terms & Privacy'), findsOneWidget); // dialog title
       expect(find.text('Destination Alert Privacy Commitment'), findsOneWidget);
       expect(find.text('Understood'), findsOneWidget);
 
       await tester.tap(find.text('Understood'));
       await tester.pumpAndSettle();
-      expect(find.text('Terms & Privacy'), findsNothing);
+      expect(find.text('Destination Alert Privacy Commitment'), findsNothing);
     });
 
     testWidgets('Successful registration navigates to HomeScreen', (
@@ -364,45 +473,144 @@ void main() {
         ),
       );
 
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'John Doe'),
-        'Jane Doe',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'name@example.com'),
-        'jane@example.com',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, '+1 555 123 4567'),
-        '+1 555 987 6543',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'At least 6 characters'),
-        'password123',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Re-enter your password'),
-        'password123',
-      );
+      final nameField = find.widgetWithText(TextFormField, 'Enter your name');
+      await tester.ensureVisible(nameField);
+      await tester.enterText(nameField, 'Jane Doe');
 
-      await tester.ensureVisible(find.widgetWithText(PrimaryButton, 'Create Account'));
-      await tester.tap(find.widgetWithText(PrimaryButton, 'Create Account'));
+      final emailField = find.widgetWithText(TextFormField, 'Enter your email');
+      await tester.ensureVisible(emailField);
+      await tester.enterText(emailField, 'jane@example.com');
+
+      final phoneField = find.widgetWithText(
+        TextFormField,
+        'Enter phone number',
+      );
+      await tester.ensureVisible(phoneField);
+      await tester.enterText(phoneField, '9876543210');
+
+      final passField = find.widgetWithText(TextFormField, 'Create a password');
+      await tester.ensureVisible(passField);
+      await tester.enterText(passField, 'password123');
+
+      final confirmField = find.widgetWithText(
+        TextFormField,
+        'Re-enter your password',
+      );
+      await tester.ensureVisible(confirmField);
+      await tester.enterText(confirmField, 'password123');
+
+      // Check terms checkbox
+      final checkbox = find.byType(Checkbox);
+      await tester.ensureVisible(checkbox);
+      await tester.tap(checkbox);
+      await tester.pumpAndSettle();
+
+      final signUpBtn = find.widgetWithText(PrimaryButton, 'Sign Up');
+      await tester.ensureVisible(signUpBtn);
+      await tester.tap(signUpBtn);
       await tester.pumpAndSettle();
 
       expect(find.byType(HomeScreen), findsOneWidget);
     });
 
-    testWidgets('SignUpScreen adapts responsively to small screen without overflow', (
+    testWidgets(
+      'SignUpScreen adapts responsively to small screen without overflow',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          createTestableWidget(child: const SignUpScreen()),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  group('ForgotPasswordScreen Widget Tests', () {
+    testWidgets('Renders logo, title, email input, and submit button', (
       WidgetTester tester,
     ) async {
-      tester.view.physicalSize = const Size(320, 568);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        createTestableWidget(child: const ForgotPasswordScreen()),
+      );
 
-      await tester.pumpWidget(createTestableWidget(child: const SignUpScreen()));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      expect(find.text('Forgot Password?'), findsOneWidget);
+      expect(
+        find.text(
+          'Enter your email address and we will send you instructions to reset your password.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Email address', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(PrimaryButton, 'Send Reset Link'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.arrow_back_ios_new_rounded), findsOneWidget);
     });
+
+    testWidgets('Enforces required email validation', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(child: const ForgotPasswordScreen()),
+      );
+
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Send Reset Link'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Email address is required'), findsOneWidget);
+    });
+
+    testWidgets('Validates invalid email format', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(child: const ForgotPasswordScreen()),
+      );
+
+      final emailField = find.widgetWithText(TextFormField, 'Enter your email');
+      await tester.enterText(emailField, 'invalid-email');
+
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Send Reset Link'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Please enter a valid email address'), findsOneWidget);
+    });
+
+    testWidgets(
+      'Successfully submits reset email and shows confirmation card',
+      (WidgetTester tester) async {
+        final mockSource = MockSuccessfulAuthDataSource();
+        final authProvider = AuthProvider(
+          repository: AuthRepositoryImpl(remoteDataSource: mockSource),
+        );
+
+        await tester.pumpWidget(
+          createTestableWidget(
+            child: ForgotPasswordScreen(authProvider: authProvider),
+          ),
+        );
+
+        final emailField = find.widgetWithText(
+          TextFormField,
+          'Enter your email',
+        );
+        await tester.enterText(emailField, 'recovery@example.com');
+
+        await tester.tap(find.widgetWithText(PrimaryButton, 'Send Reset Link'));
+        await tester.pumpAndSettle();
+
+        // Verify success card is rendered
+        expect(find.text('Check Your Inbox'), findsOneWidget);
+        expect(find.textContaining('recovery@example.com'), findsOneWidget);
+        expect(find.text('Back to Login'), findsOneWidget);
+      },
+    );
   });
 }

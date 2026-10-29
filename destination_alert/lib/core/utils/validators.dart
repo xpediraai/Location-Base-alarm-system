@@ -6,9 +6,7 @@ class Validators {
     r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
   );
 
-  static final RegExp _phoneRegExp = RegExp(
-    r'^\+?[0-9\s\-\(\)]{7,20}$',
-  );
+  static final RegExp _phoneRegExp = RegExp(r'^\+?[0-9\s\-\(\)]{7,20}$');
 
   /// Validates an email address.
   static String? validateEmail(String? value) {

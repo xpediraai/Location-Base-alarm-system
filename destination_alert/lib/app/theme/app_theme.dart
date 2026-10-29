@@ -17,6 +17,16 @@ class AppTheme {
         surface: AppColors.surfaceLight,
         error: AppColors.error,
       ),
+      cardColor: AppColors.cardBackground,
+      cardTheme: CardThemeData(
+        color: AppColors.cardBackground,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.inputBorder, width: 1),
+        ),
+        margin: EdgeInsets.zero,
+      ),
       scaffoldBackgroundColor: AppColors.backgroundLight,
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -69,29 +79,19 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(
-            color: AppColors.error,
-            width: 1.2,
-          ),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(
-            color: AppColors.error,
-            width: 1.8,
-          ),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.8),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primaryBlue,
-          textStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
       ),
     );
   }
 }
-

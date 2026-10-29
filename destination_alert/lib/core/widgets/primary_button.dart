@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 
-/// Reusable primary action button with Destination Alert gradient and loading state.
+/// Reusable primary and styled action button for Destination Alert.
 class PrimaryButton extends StatelessWidget {
   /// Button display text.
   final String text;
@@ -13,8 +13,8 @@ class PrimaryButton extends StatelessWidget {
   /// Whether the button is currently in a loading state.
   final bool isLoading;
 
-  /// Optional leading icon.
-  final IconData? icon;
+  /// Optional leading icon or widget.
+  final Widget? icon;
 
   /// Button height (defaults to 52).
   final double height;
@@ -25,6 +25,18 @@ class PrimaryButton extends StatelessWidget {
   /// Corner radius (defaults to 14).
   final double borderRadius;
 
+  /// Solid background color (defaults to [AppColors.primaryBlue]).
+  final Color? backgroundColor;
+
+  /// Custom text color.
+  final Color? textColor;
+
+  /// Whether to render as an outline button.
+  final bool isOutlined;
+
+  /// Border color for outlined button.
+  final Color? borderColor;
+
   const PrimaryButton({
     super.key,
     required this.text,
@@ -34,32 +46,76 @@ class PrimaryButton extends StatelessWidget {
     this.height = 52.0,
     this.width,
     this.borderRadius = 14.0,
+    this.backgroundColor,
+    this.textColor,
+    this.isOutlined = false,
+    this.borderColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isDisabled = onPressed == null || isLoading;
+    final effectiveBgColor = backgroundColor ?? AppColors.primaryBlue;
+
+    if (isOutlined) {
+      return SizedBox(
+        width: width ?? double.infinity,
+        height: height,
+        child: OutlinedButton(
+          onPressed: isDisabled ? null : onPressed,
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(
+              color: borderColor ?? AppColors.inputBorder,
+              width: 1.2,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(borderRadius),
+            ),
+            backgroundColor: Colors.transparent,
+          ),
+          child: isLoading
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      textColor ?? AppColors.textPrimary,
+                    ),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[icon!, const SizedBox(width: 8)],
+                    Text(
+                      text,
+                      style: TextStyle(
+                        color: textColor ?? AppColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      );
+    }
 
     return Container(
       width: width ?? double.infinity,
       height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
-        gradient: isDisabled
-            ? null
-            : const LinearGradient(
-                colors: [AppColors.primaryBlue, AppColors.royalBlue],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-        color: isDisabled ? AppColors.inputBorder : null,
+        color: isDisabled ? AppColors.inputBorder : effectiveBgColor,
         boxShadow: isDisabled
             ? null
             : [
                 BoxShadow(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.32),
+                  color: effectiveBgColor.withValues(alpha: 0.28),
                   blurRadius: 14,
-                  offset: const Offset(0, 5),
+                  offset: const Offset(0, 4),
                 ),
               ],
       ),
@@ -84,19 +140,16 @@ class PrimaryButton extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (icon != null) ...[
-                        Icon(icon, color: Colors.white, size: 20),
-                        const SizedBox(width: 8),
-                      ],
+                      if (icon != null) ...[icon!, const SizedBox(width: 8)],
                       Text(
                         text,
                         style: TextStyle(
                           color: isDisabled
                               ? AppColors.textMuted
-                              : Colors.white,
+                              : (textColor ?? Colors.white),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ],
@@ -107,3 +160,7 @@ class PrimaryButton extends StatelessWidget {
     );
   }
 }
+
+/// Convenience aliases for component naming consistency.
+typedef AppButton = PrimaryButton;
+typedef AppPrimaryButton = PrimaryButton;

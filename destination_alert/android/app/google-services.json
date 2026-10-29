@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "933628595158",
+    "project_id": "destinationalert-db8c2",
+    "storage_bucket": "destinationalert-db8c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:933628595158:android:4f965d8fb378d2a93c7277",
+        "android_client_info": {
+          "package_name": "com.example.destination_alert"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZjskqbAVZrwOE1bC-LzGfctaulZmymIk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -14,9 +14,13 @@ class UserModel extends AppUser {
   /// Creates a [UserModel] from a JSON map.
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String? ?? json['uid'] as String? ?? '',
+      id: json['uid'] as String? ?? json['id'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      name: json['name'] as String? ?? json['displayName'] as String? ?? '',
+      name:
+          json['fullName'] as String? ??
+          json['name'] as String? ??
+          json['displayName'] as String? ??
+          '',
       phoneNumber: json['phoneNumber'] as String?,
       photoUrl: json['photoUrl'] as String?,
       createdAt: json['createdAt'] != null
@@ -25,15 +29,18 @@ class UserModel extends AppUser {
     );
   }
 
-  /// Converts this model to a JSON map.
+  /// Converts this model to a JSON map for Cloud Firestore.
   Map<String, dynamic> toJson() {
     return {
+      'uid': id,
       'id': id,
-      'email': email,
+      'fullName': name,
       'name': name,
-      if (phoneNumber != null) 'phoneNumber': phoneNumber,
-      if (photoUrl != null) 'photoUrl': photoUrl,
-      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+      'email': email,
+      'phoneNumber': ?phoneNumber,
+      'photoUrl': ?photoUrl,
+      'createdAt': ?createdAt?.toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
     };
   }
 

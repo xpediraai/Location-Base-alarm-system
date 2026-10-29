@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:destination_alert/app/app.dart';
 import 'package:destination_alert/app/router/app_router.dart';
 import 'package:destination_alert/core/constants/asset_constants.dart';
+import 'package:destination_alert/core/services/local_storage_service.dart';
 import 'package:destination_alert/core/widgets/app_splash_screen.dart';
 import 'package:destination_alert/features/auth/presentation/screens/login_screen.dart';
 import 'package:destination_alert/features/home/presentation/screens/home_screen.dart';
+import 'package:destination_alert/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:destination_alert/features/splash/presentation/screens/splash_screen.dart';
 
 void main() {
@@ -162,9 +164,35 @@ void main() {
   });
 
   group('Startup Flow & Navigation Tests', () {
-    testWidgets('Navigates to login screen when splash completes', (
+    testWidgets('Navigates to onboarding screen on first launch', (
       WidgetTester tester,
     ) async {
+      await LocalStorageService.instance.init();
+      await LocalStorageService.instance.setOnboardingCompleted(false);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          initialRoute: AppRouter.splash,
+          onGenerateRoute: AppRouter.onGenerateRoute,
+        ),
+      );
+
+      expect(find.byType(SplashScreen), findsOneWidget);
+      expect(find.byType(OnboardingScreen), findsNothing);
+
+      // Advance time past splash duration
+      await tester.pump(const Duration(milliseconds: 2600));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OnboardingScreen), findsOneWidget);
+    });
+
+    testWidgets('Navigates to login screen when onboarding is completed', (
+      WidgetTester tester,
+    ) async {
+      await LocalStorageService.instance.init();
+      await LocalStorageService.instance.setOnboardingCompleted(true);
+
       await tester.pumpWidget(
         MaterialApp(
           initialRoute: AppRouter.splash,
@@ -182,15 +210,12 @@ void main() {
       expect(find.byType(LoginScreen), findsOneWidget);
     });
 
-    testWidgets('DestinationAlertApp root boots into splash screen and then login', (
+    testWidgets('DestinationAlertApp root boots into splash screen', (
       WidgetTester tester,
     ) async {
+      await LocalStorageService.instance.init();
       await tester.pumpWidget(const DestinationAlertApp());
       expect(find.byType(SplashScreen), findsOneWidget);
-
-      await tester.pump(const Duration(milliseconds: 2600));
-      await tester.pumpAndSettle();
-      expect(find.byType(LoginScreen), findsOneWidget);
     });
 
     testWidgets('Navigates to custom nextRoute when provided', (
