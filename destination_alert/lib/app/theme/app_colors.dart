@@ -40,6 +40,10 @@ class AppColors {
   static const Color primary = primaryBlue;
   static const Color textPrimaryLight = textPrimary;
   static const Color textSecondaryLight = textSecondary;
+  static const Color textPrimaryDark = Color(0xFFF8FAFC);
+  static const Color textSecondaryDark = Color(0xFF94A3B8);
+  static const Color backgroundDark = Color(0xFF0F172A);
+  static const Color surfaceDark = Color(0xFF1E293B);
   static const Color accentBlueSoft = Color(0xFFEFF6FF);
   static const Color errorSoft = Color(0xFFFEF2F2);
 

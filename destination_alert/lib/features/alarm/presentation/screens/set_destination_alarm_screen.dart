@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/services/firestore_database_service.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/services/places_search_service.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../map_picker/presentation/widgets/destination_map_view.dart';
 import '../../domain/entities/destination_search_result.dart';
 
-/// Screen for searching destinations, selecting alert radius, and saving destination alarms to Cloud Firestore.
+/// Screen for searching destinations on a live OpenStreetMap, selecting alert radius, and saving destination alarms to Cloud Firestore.
 class SetDestinationAlarmScreen extends StatefulWidget {
   final PlacesSearchService? placesSearchService;
   final FirestoreDatabaseService? firestoreDatabaseService;
+  final LocationService? locationService;
   final VoidCallback? onAlarmSaved;
 
   const SetDestinationAlarmScreen({
     super.key,
     this.placesSearchService,
     this.firestoreDatabaseService,
+    this.locationService,
     this.onAlarmSaved,
   });
 
@@ -28,17 +34,21 @@ class SetDestinationAlarmScreen extends StatefulWidget {
 class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
   late final PlacesSearchService _searchService;
   late final FirestoreDatabaseService _firestoreService;
+  late final LocationService _locationService;
 
+  final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
   List<DestinationSearchResult> _searchResults = [];
   DestinationSearchResult? _selectedDestination;
+  LatLng? _currentLocation;
   bool _isSearching = false;
+  bool _isLocating = false;
   bool _isSaving = false;
   String? _formError;
 
-  // Selected parameters
+  // Selected alarm parameters
   double _radiusMeters = 500.0;
   String _selectedTone = 'Chime Alert';
   bool _vibrate = true;
@@ -57,6 +67,9 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
     _searchService = widget.placesSearchService ?? PlacesSearchService();
     _firestoreService =
         widget.firestoreDatabaseService ?? FirestoreDatabaseService.instance;
+    _locationService = widget.locationService ?? LocationService.instance;
+
+    _fetchDeviceLocation();
   }
 
   @override
@@ -64,6 +77,23 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchDeviceLocation() async {
+    setState(() => _isLocating = true);
+    final pos = await _locationService.getCurrentPosition();
+    if (mounted && pos != null) {
+      final latLng = LatLng(pos.latitude, pos.longitude);
+      setState(() {
+        _currentLocation = latLng;
+        _isLocating = false;
+      });
+      if (_selectedDestination == null) {
+        _mapController.move(latLng, 14.0);
+      }
+    } else {
+      if (mounted) setState(() => _isLocating = false);
+    }
   }
 
   Future<void> _performSearch(String query) async {
@@ -87,12 +117,55 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
 
   void _selectDestination(DestinationSearchResult destination) {
     FocusScope.of(context).unfocus();
+    final destLatLng = LatLng(destination.latitude, destination.longitude);
+
     setState(() {
       _selectedDestination = destination;
       _searchResults = [];
       _formError = null;
       _searchController.text = destination.name;
     });
+
+    _mapController.move(destLatLng, 15.0);
+  }
+
+  Future<void> _onMapTapped(LatLng latLng) async {
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _selectedDestination = DestinationSearchResult(
+        name: 'Selected Pin Location',
+        formattedAddress:
+            '${latLng.latitude.toStringAsFixed(4)}, ${latLng.longitude.toStringAsFixed(4)}',
+        latitude: latLng.latitude,
+        longitude: latLng.longitude,
+        category: 'Custom Pin',
+      );
+      _searchController.text = 'Pin Location';
+      _searchResults = [];
+      _formError = null;
+    });
+
+    // Reverse geocode in background to obtain street address
+    final address = await _searchService.reverseGeocode(
+      latitude: latLng.latitude,
+      longitude: latLng.longitude,
+    );
+
+    if (mounted &&
+        _selectedDestination?.latitude == latLng.latitude &&
+        _selectedDestination?.longitude == latLng.longitude) {
+      setState(() {
+        _selectedDestination = DestinationSearchResult(
+          name: address.split(',').first,
+          formattedAddress: address,
+          latitude: latLng.latitude,
+          longitude: latLng.longitude,
+          category: 'Selected Place',
+        );
+        _searchController.text = address.split(',').first;
+      });
+    }
   }
 
   String _formatRadius(double meters) {
@@ -101,6 +174,22 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
       return '${km.toStringAsFixed(km.truncateToDouble() == km ? 0 : 1)} km';
     }
     return '${meters.toInt()} m';
+  }
+
+  String? _calculateDistanceFromUser() {
+    if (_currentLocation == null || _selectedDestination == null) return null;
+
+    final distanceMeters = _locationService.calculateDistanceMeters(
+      startLatitude: _currentLocation!.latitude,
+      startLongitude: _currentLocation!.longitude,
+      endLatitude: _selectedDestination!.latitude,
+      endLongitude: _selectedDestination!.longitude,
+    );
+
+    if (distanceMeters >= 1000) {
+      return '${(distanceMeters / 1000).toStringAsFixed(1)} km away';
+    }
+    return '${distanceMeters.toInt()} m away';
   }
 
   Future<void> _handleSaveAlarm() async {
@@ -171,6 +260,7 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final distanceText = _calculateDistanceFromUser();
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -185,6 +275,22 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
             color: AppColors.textPrimaryLight,
           ),
         ),
+        actions: [
+          if (_isLocating)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -247,17 +353,17 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
                             ),
                           )
                         : _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 20),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() {
-                                    _selectedDestination = null;
-                                    _searchResults = [];
-                                  });
-                                },
-                              )
-                            : null,
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _selectedDestination = null;
+                                _searchResults = [];
+                              });
+                            },
+                          )
+                        : null,
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -286,7 +392,7 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
                         key: Key('search_result_item_$index'),
                         leading: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppColors.accentBlueSoft,
                             shape: BoxShape.circle,
                           ),
@@ -336,9 +442,47 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
                 ),
               ],
 
+              // Interactive OpenStreetMap Live Map View
+              const SizedBox(height: 16),
+              Container(
+                height: 250,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.inputBorder),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadowColor,
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: DestinationMapView(
+                  mapController: _mapController,
+                  initialCenter: _selectedDestination != null
+                      ? LatLng(
+                          _selectedDestination!.latitude,
+                          _selectedDestination!.longitude,
+                        )
+                      : (_currentLocation ?? const LatLng(23.0225, 72.5714)),
+                  currentLocation: _currentLocation,
+                  destination: _selectedDestination != null
+                      ? LatLng(
+                          _selectedDestination!.latitude,
+                          _selectedDestination!.longitude,
+                        )
+                      : null,
+                  radiusMeters: _radiusMeters,
+                  onMapTapped: _onMapTapped,
+                  onRecenter: _currentLocation != null
+                      ? () => _mapController.move(_currentLocation!, 15.0)
+                      : _fetchDeviceLocation,
+                ),
+              ),
+
               // Selected Destination Card
               if (_selectedDestination != null) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 AppCard(
                   key: const Key('set_alarm_selected_destination_card'),
                   padding: const EdgeInsets.all(16),
@@ -383,13 +527,30 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
-                            Text(
-                              'GPS: ${_selectedDestination!.latitude.toStringAsFixed(4)}, ${_selectedDestination!.longitude.toStringAsFixed(4)}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.primary.withValues(alpha: 0.9),
-                                fontWeight: FontWeight.w500,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  'GPS: ${_selectedDestination!.latitude.toStringAsFixed(4)}, ${_selectedDestination!.longitude.toStringAsFixed(4)}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.9,
+                                    ),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (distanceText != null) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '• $distanceText',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.secondaryGreen,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -400,7 +561,7 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
               ],
 
               // Radius Selector Section
-              const SizedBox(height: 26),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -434,7 +595,7 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'How far in advance of reaching the stop should the alarm trigger?',
+                'The radius circle is displayed on the map above and updates automatically.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondaryLight,
                 ),
@@ -491,7 +652,7 @@ class _SetDestinationAlarmScreenState extends State<SetDestinationAlarmScreen> {
               ),
 
               // Sound & Vibration Settings
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               Text(
                 'Alarm Sound & Tone',
                 style: theme.textTheme.titleSmall?.copyWith(

@@ -194,6 +194,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Change radius to 1000m
+        await tester.ensureVisible(find.byKey(const Key('radius_chip_1000')));
         await tester.tap(find.byKey(const Key('radius_chip_1000')));
         await tester.pumpAndSettle();
 
